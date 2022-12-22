@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4341914473884934704}
   - component: {fileID: 6556904007615103901}
   m_Layer: 0
-  m_Name: Blue Slider (181, 100, 85)
+  m_Name: Blue CC (181, 100, 85)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -44,13 +44,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26a16411e6ca55e44812bf29e96c2cca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  isActive: 1
-  targetHue: 181
-  targetSaturation: 100
-  targetValue: 85
+  markedPosition: {fileID: 0}
+  isUpdating: 1
+  targetColor: {r: 0, g: 0, b: 0, a: 0}
   hueRange: 30
   saturationRange: 40
-  valueRange: 15
+  brightnessRange: 0
   hueInfluencePercent: 150
   saturationInfluencePercent: 25
-  valueInfluencePercent: 50
+  brightnessInfluencePercent: 0

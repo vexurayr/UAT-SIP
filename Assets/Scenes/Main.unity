@@ -137,11 +137,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4570198399904127047, guid: 583f3211da5ca7348aa8fcaf91637db1, type: 3}
       propertyPath: isDebugging
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4570198399904127047, guid: 583f3211da5ca7348aa8fcaf91637db1, type: 3}
       propertyPath: rayDistance
       value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 4570198399904127047, guid: 583f3211da5ca7348aa8fcaf91637db1, type: 3}
+      propertyPath: renderMethod
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 4570198399904127047, guid: 583f3211da5ca7348aa8fcaf91637db1, type: 3}
       propertyPath: collisionToGet
@@ -202,6 +206,14 @@ PrefabInstance:
     - target: {fileID: 8549545274827061556, guid: 583f3211da5ca7348aa8fcaf91637db1, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8857424983762219516, guid: 583f3211da5ca7348aa8fcaf91637db1, type: 3}
+      propertyPath: isDebugging
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8857424983762219516, guid: 583f3211da5ca7348aa8fcaf91637db1, type: 3}
+      propertyPath: hueInfluencePercent
+      value: 100
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_AddedGameObjects: []

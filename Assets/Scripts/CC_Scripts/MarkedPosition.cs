@@ -12,47 +12,69 @@ using UnityEngine;
 
 public class MarkedPosition : MonoBehaviour
 {
+    #region Variables
+    [Tooltip("Reference an object for MP to use its position if MP can't be attached as a child object.")]
+        [SerializeField] private GameObject objectReference;
+
     [Tooltip("Set false if the MP is not in use.")] [SerializeField] private bool isUpdating;
     [Tooltip("Set true if this object will never move.")] [SerializeField] private bool isStatic;
     [Tooltip("Enables drawing the ray and debug messages.")] [SerializeField] private bool isDebugging;
-    [Tooltip("Set false if you want to get the sprite's texture instead.")] [SerializeField] private bool isGettingMaterial;
+
+    private enum Renderer { Texture, TriMaterial, WholeMaterial };
+    [Tooltip("Texture = The color of the pixel, TriMaterial = The primary color of the tri on a mesh (NOT READY, INCOMPATIBLE WITH SPRITES), " +
+        "WholeMaterial = The primary color of the sprite.")] [SerializeField] private Renderer renderMethod;
 
     [Tooltip("Get the color of collider X from the array of colliders.")] [SerializeField] [Range(1, 100)] private int collisionToGet;
 
-    private enum State { Forward, Backward, Up, Down, Left, Right };
-    [Tooltip("Forward/Backward is Z axis, Up/Down is Y axis, Left/Right is X axis.")] [SerializeField] private State directionOfRay;
+    private enum Direction { Forward, Backward, Up, Down, Left, Right };
+    [Tooltip("Forward/Backward = Z axis, Up/Down = Y axis, Left/Right = X axis.")] [SerializeField] private Direction directionOfRay;
 
-    [Tooltip("The number of units the ray will travel.")] [SerializeField] [Range(1f, 100000f)] private float rayDistance;
+    [Tooltip("The number of units the ray will travel.")] [SerializeField] [Range(0f, 100000f)] private float rayDistance;
 
     private Ray2D ray;
     private RaycastHit2D[] rayCollisions;
+    private int tempCollisionToGet;
+    // Get sprite -> texture -> pixel color at coords
+    private Sprite sprite = null;
+    private Mesh mesh = null;
+    private Material material = null;
     private Color rGB;
     private float hue;
     private float saturation;
     private float brightness;
-    
+
+    #endregion Variables
+
+    #region MonoBehaviours
     private void Start()
     {
-        ray.origin = gameObject.transform.position;
+        if (objectReference)
+        {
+            ray.origin = objectReference.transform.position;
+        }
+        else
+        {
+            ray.origin = gameObject.transform.position;
+        }
 
         switch (directionOfRay)
         {
-            case State.Forward:
+            case Direction.Forward:
                 ray.direction = gameObject.transform.forward;
                 break;
-            case State.Backward:
+            case Direction.Backward:
                 ray.direction = gameObject.transform.forward * -1;
                 break;
-            case State.Up:
+            case Direction.Up:
                 ray.direction = gameObject.transform.up;
                 break;
-            case State.Down:
+            case Direction.Down:
                 ray.direction = gameObject.transform.up * -1;
                 break;
-            case State.Left:
+            case Direction.Left:
                 ray.direction = gameObject.transform.right * -1;
                 break;
-            case State.Right:
+            case Direction.Right:
                 ray.direction = gameObject.transform.right;
                 break;
             default:
@@ -66,7 +88,14 @@ public class MarkedPosition : MonoBehaviour
     {
         if (!isStatic)
         {
-            ray.origin = gameObject.transform.position;
+            if (objectReference)
+            {
+                ray.origin = objectReference.transform.position;
+            }
+            else
+            {
+                ray.origin = gameObject.transform.position;
+            }
         }
 
         if (isDebugging)
@@ -80,11 +109,14 @@ public class MarkedPosition : MonoBehaviour
         }
     }
 
-    // Shoots ray, gets all collisions, get material of collision, or get texture/pixel hit and get color of pixel
+    #endregion MonoBehaviours
+
+    #region PrivateFunctions
+    // Shoots ray, gets all collisions, gets material of tri hit or gets texture/pixel hit, get color of tri/pixel
     private void PerformRaycast()
     {
         // Work within the bounds of array.length
-        int tempCollisionToGet = collisionToGet - 1;
+        tempCollisionToGet = collisionToGet - 1;
 
         // To get exact pixel on the colliders texture that the ray collided with
         Vector2 pixelCoordinates = ray.origin;
@@ -120,41 +152,26 @@ public class MarkedPosition : MonoBehaviour
                 Debug.Log("collisionToGet was out of index. Getting first collision.");
             }
         }
-        
-        // Get sprite -> texture -> pixel color at coords
-        Sprite sprite = null;
-        Material material = null;
 
-        // Check for sprite on parent and child objects
-        if (rayCollisions[tempCollisionToGet].transform.GetComponent<SpriteRenderer>())
+        switch (renderMethod)
         {
-            sprite = rayCollisions[tempCollisionToGet].transform.GetComponent<SpriteRenderer>().sprite;
-            material = rayCollisions[tempCollisionToGet].transform.GetComponent<SpriteRenderer>().material;
-        }
-        else if (rayCollisions[tempCollisionToGet].transform.GetComponentInChildren<SpriteRenderer>())
-        {
-            sprite = rayCollisions[tempCollisionToGet].transform.GetComponentInChildren<SpriteRenderer>().sprite;
-            material = rayCollisions[tempCollisionToGet].transform.GetComponentInChildren<SpriteRenderer>().material;
-        }
+            case Renderer.Texture:
+                GetTexture(pixelCoordinates);
 
-        if (isDebugging && !isGettingMaterial)
-        {
-            Debug.Log("Sprite: " + sprite);
-        }
-        else if (isDebugging && isGettingMaterial)
-        {
-            Debug.Log("Material: " + material);
-        }
+                break;
+            case Renderer.TriMaterial:
+                GetTriMaterial();
 
-        // If a sprite was found, get its texture's color at ray.origin when the ray was cast
-        if (sprite != null && !isGettingMaterial)
-        {
-            rGB = sprite.texture.GetPixel((int)pixelCoordinates.x, (int)pixelCoordinates.y);
-        }
-        // Expecting the material to be a solid color
-        else if (material != null & isGettingMaterial)
-        {
-            rGB = material.color;
+                break;
+            case Renderer.WholeMaterial:
+                GetWholeMaterial();
+
+                break;
+            default:
+                Debug.Log("Render method unclear. Defaulting to WholeMaterial.");
+                GetWholeMaterial();
+
+                break;
         }
             
         if (isDebugging)
@@ -163,6 +180,141 @@ public class MarkedPosition : MonoBehaviour
         }
 
         ConvertRGBToHSB();
+    }
+
+    private void GetTexture(Vector2 pixelCoordinates)
+    {
+        // Check for sprite on parent and child objects
+        if (rayCollisions[tempCollisionToGet].collider.GetComponent<SpriteRenderer>())
+        {
+            sprite = rayCollisions[tempCollisionToGet].collider.GetComponent<SpriteRenderer>().sprite;
+        }
+        else if (rayCollisions[tempCollisionToGet].collider.GetComponentInChildren<SpriteRenderer>())
+        {
+            sprite = rayCollisions[tempCollisionToGet].collider.GetComponentInChildren<SpriteRenderer>().sprite;
+        }
+
+        if (isDebugging)
+        {
+            Debug.Log("Sprite: " + sprite);
+        }
+
+        // If a sprite was found, get its texture's color at the pixel the ray hit the texture
+        if (sprite != null)
+        {
+            rGB = sprite.texture.GetPixel((int)pixelCoordinates.x, (int)pixelCoordinates.y);
+        }
+    }
+
+    private void GetTriMaterial()
+    {
+        // Get the mesh of the target collider
+        mesh = GetMeshOf(rayCollisions[tempCollisionToGet].collider.gameObject);
+
+        if (!mesh)
+        {
+            return;
+        }
+
+        // Get the tris of each mesh
+        int[] trisHit = new int[]
+        {
+            mesh.triangles[rayCollisions[tempCollisionToGet].collider.shapeCount * 3],
+            mesh.triangles[rayCollisions[tempCollisionToGet].collider.shapeCount * 3 + 1],
+            mesh.triangles[rayCollisions[tempCollisionToGet].collider.shapeCount * 3 + 2]
+        };
+
+        // Get the tris of each submesh
+        for (int i = 0; i < mesh.subMeshCount; i++)
+        {
+            int[] subMeshTris = mesh.GetTriangles(i);
+
+            for (int j = 0; j < subMeshTris.Length; j += 3)
+            {
+                if (subMeshTris[j] == trisHit[0] &&
+                    subMeshTris[j + 1] == trisHit[1] &&
+                    subMeshTris[j + 2] == trisHit[2])
+                {
+                    if (isDebugging)
+                    {
+                        Debug.Log("Tri index: " + rayCollisions[tempCollisionToGet].collider.shapeCount + ", SubMesh index: " +
+                            i + ", SubMesh Tri index: " + j / 3);
+                    }
+
+                    rGB = mesh.colors32[i];
+                }
+            }
+        }
+    }
+
+    private void GetWholeMaterial()
+    {
+        // Check for sprite on parent and child objects
+        if (rayCollisions[tempCollisionToGet].collider.GetComponent<SpriteRenderer>())
+        {
+            material = rayCollisions[tempCollisionToGet].collider.GetComponent<SpriteRenderer>().material;
+        }
+        else if (rayCollisions[tempCollisionToGet].collider.GetComponentInChildren<SpriteRenderer>())
+        {
+            material = rayCollisions[tempCollisionToGet].collider.GetComponentInChildren<SpriteRenderer>().material;
+        }
+
+        if (isDebugging)
+        {
+            Debug.Log("Material: " + material);
+        }
+
+        // If a sprite was found, get its primary color
+        if (material != null)
+        {
+            rGB = material.color;
+        }
+    }
+
+    private Mesh GetMeshOf(GameObject obj)
+    {
+        MeshFilter meshFilter;
+
+        if (!obj)
+        {
+            if (isDebugging)
+            {
+                Debug.Log("No valid object provided.");
+            }
+
+            return (Mesh)null;
+        }
+
+        if (!obj.GetComponent<MeshFilter>())
+        {
+            if (isDebugging)
+            {
+                Debug.Log("No MeshFilter component could be found.");
+            }
+
+            return (Mesh)null;
+        }
+
+        meshFilter = obj.GetComponent<MeshFilter>();
+
+        Mesh mesh = meshFilter.sharedMesh;
+
+        if (!mesh)
+        {
+            mesh = meshFilter.mesh;
+        }
+
+        if (!mesh)
+        {
+            if (isDebugging)
+            {
+                Debug.Log("No Mesh could be found.");
+            }
+
+            return (Mesh)null;
+        }
+
+        return mesh;
     }
 
     private void ConvertRGBToHSB()
@@ -181,6 +333,9 @@ public class MarkedPosition : MonoBehaviour
         }
     }
 
+    #endregion PrivateFunctions
+
+    #region PublicGetters
     public float GetHue()
     {
         return hue;
@@ -195,4 +350,104 @@ public class MarkedPosition : MonoBehaviour
     {
         return brightness;
     }
+
+    #endregion PublicGetters
+
+    #region PublicSetters
+    public void SetIsUpdating(bool newState)
+    {
+        isUpdating = newState;
+    }
+
+    public void SetIsStatic(bool newState)
+    {
+        isStatic = newState;
+    }
+
+    public void SetIsDebugging(bool newState)
+    {
+        isDebugging = newState;
+    }
+
+    public void SetRenderMethod(string newMethod)
+    {
+        if (newMethod == "Texture")
+        {
+            renderMethod = Renderer.Texture;
+        }
+        else if (newMethod == "TriMaterial")
+        {
+            renderMethod = Renderer.TriMaterial;
+        }
+        else if (newMethod == "WholeMaterial")
+        {
+            renderMethod = Renderer.WholeMaterial;
+        }
+        else
+        {
+            Debug.Log("Render method (" + newMethod + ") is not a valid option.");
+        }
+    }
+
+    public void SetCollisionToGet(int newCollision)
+    {
+        if (newCollision < 0)
+        {
+            newCollision = 0;
+        }
+        else if (newCollision > 100)
+        {
+            newCollision = 100;
+        }
+
+        collisionToGet = newCollision;
+    }
+
+    public void SetDirectionOfRay(string newDirection)
+    {
+        if (newDirection == "Forward")
+        {
+            directionOfRay = Direction.Forward;
+        }
+        else if (newDirection == "Backward")
+        {
+            directionOfRay = Direction.Backward;
+        }
+        else if (newDirection == "Up")
+        {
+            directionOfRay = Direction.Up;
+        }
+        else if (newDirection == "Down")
+        {
+            directionOfRay = Direction.Down;
+        }
+        else if (newDirection == "Left")
+        {
+            directionOfRay = Direction.Left;
+        }
+        else if (newDirection == "Right")
+        {
+            directionOfRay = Direction.Right;
+        }
+        else
+        {
+            Debug.Log("Ray direction (" + newDirection + ") is not a valid option.");
+        }
+    }
+
+    public void SetRayDistance(float newDistance)
+    {
+        if (newDistance < 0)
+        {
+            newDistance = 0;
+        }
+        else if (newDistance > 100000)
+        {
+            newDistance = 100000;
+        }
+
+        rayDistance = newDistance;
+    }
+
+    #endregion PublicSetters
 }
