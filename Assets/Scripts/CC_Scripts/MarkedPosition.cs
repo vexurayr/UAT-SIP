@@ -1,7 +1,6 @@
 /* Courtesy of Color, Unity Tool for Game Devs
  * Creator - Austin Foulks
  * Date of Conception - November 30, 2022
- * Edit the code however you need to fit your project
 */
 
 using System;
@@ -173,11 +172,6 @@ public class MarkedPosition : MonoBehaviour
 
                 break;
         }
-            
-        if (isDebugging)
-        {
-            Debug.Log("R: " + rGB.r * 255 + ", G: " + rGB.g * 255 + ", B: " + rGB.b * 255);
-        }
 
         ConvertRGBToHSB();
     }
@@ -336,6 +330,21 @@ public class MarkedPosition : MonoBehaviour
     #endregion PrivateFunctions
 
     #region PublicGetters
+    public float GetRed()
+    {
+        return rGB.r;
+    }
+
+    public float GetGreen()
+    {
+        return rGB.g;
+    }
+
+    public float GetBlue()
+    {
+        return rGB.b;
+    }
+
     public float GetHue()
     {
         return hue;

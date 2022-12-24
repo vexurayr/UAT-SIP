@@ -7,9 +7,15 @@ using UnityEngine.UI;
 public class PlayerPawn : Pawn
 {
     // For UI
-    [SerializeField] public Text rgbText;
-    [SerializeField] public Text hsvText;
-    [SerializeField] public Text speedText;
+    public Text targetHSBText;
+    public Text rangeHSBText;
+    public Text influenceHSBText;
+    public Text currentHSBText;
+    public Text controllerOutputText;
+    public Text currentSpeedText;
+    public ColorController colorController;
+
+    private float currentSpeedUp;
 
     // Start is called before the first frame update
     public override void Start()
@@ -22,21 +28,34 @@ public class PlayerPawn : Pawn
     {
         base.Update();
 
-        if (rgbText != null)
+        if (targetHSBText != null)
         {
-            rgbText.text = "RGB: ";
+            targetHSBText.text = "Target H: " + colorController.GetTargetHue() + ", S: " + colorController.GetTargetSaturation()
+                + ", B: " + colorController.GetTargetBrightness();
         }
-        if (hsvText != null)
+        if (rangeHSBText != null)
         {
-            hsvText.text = "HSV: ";
+            rangeHSBText.text = "Range H: " + colorController.GetHueRange() + ", S: " + colorController.GetSaturationRange()
+                + ", B: " + colorController.GetBrightnessRange();
         }
-        if (speedText != null)
+        if (influenceHSBText != null)
         {
-            speedText.text = "Speed Up: %";
+            influenceHSBText.text = "Influence H: " + colorController.GetHueInfluence() + ", S: " + colorController.GetSaturationInfluence()
+                + ", B: " + colorController.GetBrightnessInfluence();
         }
-
-        // Speed is constantly fluctuating
-        ChangeSpeed(1);
+        if (currentHSBText != null)
+        {
+            currentHSBText.text = "Current H: " + colorController.GetMPHue() + ", S: " + colorController.GetMPSaturation()
+                + ", B: " + colorController.GetMPBrightness();
+        }
+        if (controllerOutputText != null)
+        {
+            controllerOutputText.text = "Controller Output: " + colorController.GetFinalOutput();
+        }
+        if (currentSpeedText != null)
+        {
+            currentSpeedText.text = "Current Speed: " + moveSpeed;
+        }
     }
 
     public override void MoveUp()
@@ -62,8 +81,11 @@ public class PlayerPawn : Pawn
         mover.Move(transform.right, moveSpeed);
     }
 
-    public override void ChangeSpeed(float sliderOutput)
+    // Takes in float between 0-1, meaning the speed boost is somewhere between 0-100% active
+    public override void ChangeSpeed(float colorControllerOutput)
     {
-        moveSpeed = normalMoveSpeed + (speedBoost * sliderOutput);
+        currentSpeedUp = speedBoost * colorControllerOutput;
+
+        moveSpeed = normalMoveSpeed + currentSpeedUp;
     }
 }

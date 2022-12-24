@@ -11,25 +11,22 @@ public class PlayerController : Controller
     public KeyCode keyDown = KeyCode.S;
     public KeyCode keyLeft = KeyCode.A;
     public KeyCode keyRight = KeyCode.D;
-    public bool isCursorLocked;
+    public KeyCode keyLeftClick = KeyCode.Mouse0;
+    public bool isCursorVisible;
 
     // Start is called before the first frame update
     public override void Start()
     {
         base.Start();
 
-        if (isCursorLocked)
+        if (isCursorVisible)
         {
-            // Locks the cursor to the center of the screen
-            Cursor.lockState = CursorLockMode.Locked;
-
             // Makes the cursor invisible
-            Cursor.visible = false;
+            Cursor.visible = true;
         }
         else
         {
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
+            Cursor.visible = false;
         }
     }
 
@@ -41,7 +38,7 @@ public class PlayerController : Controller
     }
 
     // Function that uses the keycodes to access the pawn referrence in the parent class
-    // to run the functions in the TankPawn class
+    // to run the functions in the PlayerPawn class
     public override void ProcessInputs()
     {
         // Get Key runs as long as it's held, Get Key Down runs once on being pressed, Get Key Up runs once on being released
@@ -61,6 +58,18 @@ public class PlayerController : Controller
         if (Input.GetKey(keyRight))
         {
             pawn.MoveRight();
+        }
+        if (Input.GetKeyDown(keyLeftClick))
+        {
+            Shoot();
+        }
+    }
+
+    private void Shoot()
+    {
+        if (GetComponent<SoldierShooter>() != null)
+        {
+            GetComponent<SoldierShooter>().Shoot();
         }
     }
 }

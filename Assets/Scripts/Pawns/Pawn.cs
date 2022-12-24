@@ -9,12 +9,12 @@ public abstract class Pawn : MonoBehaviour
     /// Variables that will determine how fast an inhereting object will move
     /// </summary>
     public float moveSpeed;
-    public float normalMoveSpeed;
 
     // Amount that the speed will increase by at its maximum influence
     public float speedBoost;
 
     protected Mover mover;
+    protected float normalMoveSpeed;
 
     // Start is called before the first frame update
     // Virtual means child classes can override this method

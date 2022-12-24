@@ -1,12 +1,12 @@
 /* Courtesy of Color, Unity Tool for Game Devs
  * Creator - Austin Foulks
  * Date of Conception - November 30, 2022
- * Edit the code however you need to fit your project
 */
 
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.Rendering.VirtualTexturing;
 
 public class ColorController : MonoBehaviour
@@ -35,7 +35,8 @@ public class ColorController : MonoBehaviour
     [Tooltip("How much brightness factors into the final output. All 3 at 100 means all 3 have 33% control of the output.")]
         [SerializeField] [Range(0f, 100f)] private float brightnessInfluencePercent;
 
-    private ControllerOutput controllerOutput;
+    public ControllerOutput controllerOutput;
+
     private MarkedPosition mP;
     private float targetHue;
     private float targetSaturation;
@@ -72,6 +73,8 @@ public class ColorController : MonoBehaviour
         if (isUpdating)
         {
             UpdateOutput();
+
+            controllerOutput.Invoke(finalOutput);
         }
     }
 
@@ -221,6 +224,74 @@ public class ColorController : MonoBehaviour
     }
 
     #endregion PrivateFunctions
+
+    #region PublicGetters
+    public float GetMPHue()
+    {
+        return mPHue;
+    }
+
+    public float GetMPSaturation()
+    {
+        return mPSaturation;
+    }
+
+    public float GetMPBrightness()
+    {
+        return mPBrightness;
+    }
+
+    public float GetTargetHue()
+    {
+        return targetHue;
+    }
+
+    public float GetTargetSaturation()
+    {
+        return targetSaturation;
+    }
+
+    public float GetTargetBrightness()
+    {
+        return targetBrightness;
+    }
+
+    public float GetHueRange()
+    {
+        return hueRange;
+    }
+
+    public float GetSaturationRange()
+    {
+        return saturationRange;
+    }
+
+    public float GetBrightnessRange()
+    {
+        return brightnessRange;
+    }
+
+    public float GetHueInfluence()
+    {
+        return hueInfluencePercent;
+    }
+
+    public float GetSaturationInfluence()
+    {
+        return saturationInfluencePercent;
+    }
+
+    public float GetBrightnessInfluence()
+    {
+        return brightnessInfluencePercent;
+    }
+
+    public float GetFinalOutput()
+    {
+        return finalOutput;
+    }
+
+    #endregion
 
     #region PublicSetters
     public void SetMarkedPosition(GameObject obj)
