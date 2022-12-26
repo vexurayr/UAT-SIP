@@ -115,7 +115,12 @@ public class ColorController : MonoBehaviour
 
         difference = Mathf.Abs(targetHue - mPHue);
 
-        if (difference > hueRange)
+        // Prevent divide by 0 problem
+        if (difference == hueRange)
+        {
+            ratio = 1;
+        }
+        else if (difference > hueRange)
         {
             difference = Mathf.Abs(difference - 360);
             
@@ -148,7 +153,12 @@ public class ColorController : MonoBehaviour
 
         difference = Mathf.Abs(targetSaturation - mPSaturation);
 
-        if (difference > saturationRange)
+        // Prevent divide by 0 problem
+        if (difference == saturationRange)
+        {
+            ratio = 1;
+        }
+        else if (difference > saturationRange)
         {
             ratio = 0;
         }
@@ -169,7 +179,12 @@ public class ColorController : MonoBehaviour
 
         difference = Mathf.Abs(targetBrightness - mPBrightness);
 
-        if (difference > brightnessRange)
+        // Prevent divide by 0 problem
+        if (difference == brightnessRange)
+        {
+            ratio = 1;
+        }
+        else if (difference > brightnessRange)
         {
             ratio = 0;
         }
@@ -188,9 +203,23 @@ public class ColorController : MonoBehaviour
         // Rebalance the distrubution from the default 33%
         float combinedInfluence = hueInfluencePercent + saturationInfluencePercent + brightnessInfluencePercent;
 
-        float newHueInfluence = hueInfluencePercent / combinedInfluence;
-        float newSaturationInfluence = saturationInfluencePercent / combinedInfluence;
-        float newBrightnessInfluence = brightnessInfluencePercent / combinedInfluence;
+        float newHueInfluence;
+        float newSaturationInfluence;
+        float newBrightnessInfluence;
+
+        // Can't divide by zero
+        if (combinedInfluence > 0)
+        {
+            newHueInfluence = hueInfluencePercent / combinedInfluence;
+            newSaturationInfluence = saturationInfluencePercent / combinedInfluence;
+            newBrightnessInfluence = brightnessInfluencePercent / combinedInfluence;
+        }
+        else
+        {
+            newHueInfluence = hueInfluencePercent;
+            newSaturationInfluence = saturationInfluencePercent;
+            newBrightnessInfluence = brightnessInfluencePercent;
+        }
 
         // Give each value its portion of control over the final outcome
         hueRatio = hueRatio * newHueInfluence;
