@@ -36,4 +36,9 @@ public abstract class Pawn : MonoBehaviour
     public abstract void MoveLeft();
     public abstract void MoveRight();
     public abstract void ChangeSpeed(float sliderOutput);
+
+    public virtual float GetCurrentSpeed()
+    {
+        return moveSpeed;
+    }
 }
