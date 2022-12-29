@@ -1,13 +1,15 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 // Allows objects of this class to appear in the editor
 [System.Serializable]
 public class PlayerController : Controller
 {
     public GameObject characterSprite;
-    public ParticleSystem sparkParticles;
+    public ParticleSystem sparkParticlesLeft;
+    public ParticleSystem sparkParticlesRight;
 
     // Creates a new field representing a button that can be set in the editor
     public KeyCode keyUp = KeyCode.W;
@@ -15,9 +17,11 @@ public class PlayerController : Controller
     public KeyCode keyLeft = KeyCode.A;
     public KeyCode keyRight = KeyCode.D;
     public KeyCode keyLeftClick = KeyCode.Mouse0;
+    public KeyCode changeScene = KeyCode.Q;
     public bool isCursorVisible;
 
     private Animator characterAnimator;
+    private SpriteRenderer spriteRenderer;
     private float animationSpeed;
 
     // Start is called before the first frame update
@@ -42,6 +46,15 @@ public class PlayerController : Controller
         else
         {
             Debug.Log("Check characterSprite for animator component.");
+        }
+
+        if (characterSprite.GetComponent<SpriteRenderer>())
+        {
+            spriteRenderer = characterSprite.GetComponent<SpriteRenderer>();
+        }
+        else
+        {
+            Debug.Log("Check characterSprite for spriteRenderer component.");
         }
 
         animationSpeed = characterAnimator.speed;
@@ -77,16 +90,29 @@ public class PlayerController : Controller
             pawn.MoveLeft();
             characterAnimator.speed = pawn.GetCurrentSpeed() / 4;
             characterAnimator.SetBool("isMoving", true);
+            spriteRenderer.flipX = false;
         }
         if (Input.GetKey(keyRight))
         {
             pawn.MoveRight();
             characterAnimator.speed = pawn.GetCurrentSpeed() / 4;
             characterAnimator.SetBool("isMoving", true);
+            spriteRenderer.flipX = true;
         }
         if (Input.GetKeyDown(keyLeftClick))
         {
             Shoot();
+        }
+        if (Input.GetKeyDown(changeScene))
+        {
+            if (SceneManager.GetActiveScene() == SceneManager.GetSceneByName("Gradients"))
+            {
+                SceneManager.LoadScene("Main");
+            }
+            else
+            {
+                SceneManager.LoadScene("Gradients");
+            }
         }
 
         if (!Input.anyKey)
@@ -94,8 +120,11 @@ public class PlayerController : Controller
             characterAnimator.SetBool("isMoving", false);
         }
 
-        var main = sparkParticles.main;
-        main.startSpeed = pawn.GetCurrentSpeed() / 4;
+        var mainLeft = sparkParticlesLeft.emission;
+        mainLeft.rateOverTime = pawn.GetCurrentSpeed() / 2;
+
+        var mainRight = sparkParticlesRight.emission;
+        mainRight.rateOverTime = pawn.GetCurrentSpeed() / 2;
     }
 
     private void Shoot()

@@ -353,6 +353,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: TestDummy (2)
       objectReference: {fileID: 0}
+    - target: {fileID: 3326529644880201110, guid: f27879987d7d88e41976bedeb4392582, type: 3}
+      propertyPath: m_FlipX
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5038945951635250467, guid: f27879987d7d88e41976bedeb4392582, type: 3}
       propertyPath: m_RootOrder
       value: 6
