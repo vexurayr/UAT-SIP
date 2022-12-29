@@ -7,6 +7,7 @@ using UnityEngine;
 public class PlayerController : Controller
 {
     public GameObject characterSprite;
+    public ParticleSystem sparkParticles;
 
     // Creates a new field representing a button that can be set in the editor
     public KeyCode keyUp = KeyCode.W;
@@ -92,6 +93,9 @@ public class PlayerController : Controller
         {
             characterAnimator.SetBool("isMoving", false);
         }
+
+        var main = sparkParticles.main;
+        main.startSpeed = pawn.GetCurrentSpeed() / 4;
     }
 
     private void Shoot()
