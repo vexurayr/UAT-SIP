@@ -116,7 +116,7 @@ public class ColorController : MonoBehaviour
         difference = Mathf.Abs(targetHue - mPHue);
 
         // Prevent divide by 0 problem
-        if (difference == hueRange)
+        if (difference == 0)
         {
             ratio = 1;
         }
@@ -154,7 +154,7 @@ public class ColorController : MonoBehaviour
         difference = Mathf.Abs(targetSaturation - mPSaturation);
 
         // Prevent divide by 0 problem
-        if (difference == saturationRange)
+        if (difference == 0)
         {
             ratio = 1;
         }
@@ -180,7 +180,7 @@ public class ColorController : MonoBehaviour
         difference = Mathf.Abs(targetBrightness - mPBrightness);
 
         // Prevent divide by 0 problem
-        if (difference == brightnessRange)
+        if (difference == 0)
         {
             ratio = 1;
         }
