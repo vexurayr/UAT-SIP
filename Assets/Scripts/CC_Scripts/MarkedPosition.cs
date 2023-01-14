@@ -17,13 +17,17 @@ public class MarkedPosition : MonoBehaviour
 
     [Tooltip("Set false if the MP is not in use.")] [SerializeField] private bool isUpdating;
     [Tooltip("Set true if this object will never move.")] [SerializeField] private bool isStatic;
-    [Tooltip("Enables drawing the ray and debug messages.")] [SerializeField] private bool isDebugging;
+    [Tooltip("Enables the debug ray (make sure Gizmos are enabled in the Game view) and debug messages.")]
+        [SerializeField] private bool isDebugging;
 
     private enum Renderer { Texture, TriMaterial, WholeMaterial };
     [Tooltip("Texture = The color of the pixel, TriMaterial = The primary color of the tri on a mesh (NOT READY, INCOMPATIBLE WITH SPRITES), " +
         "WholeMaterial = The primary color of the sprite.")] [SerializeField] private Renderer renderMethod;
 
     [Tooltip("Get the color of collider X from the array of colliders.")] [SerializeField] [Range(1, 100)] private int collisionToGet;
+    [Tooltip("If false, the first collision will be default.")] [SerializeField] private bool isLastCollisionDefault;
+    [Tooltip("If true, the ray will always return the last collider in a series of collisions.")]
+        [SerializeField] private bool alwaysGetLastCollision;
 
     private enum Direction { Forward, Backward, Up, Down, Left, Right };
     [Tooltip("Forward/Backward = Z axis, Up/Down = Y axis, Left/Right = X axis.")] [SerializeField] private Direction directionOfRay;
@@ -99,7 +103,7 @@ public class MarkedPosition : MonoBehaviour
 
         if (isDebugging)
         {
-            Debug.DrawRay(ray.origin, ray.direction, Color.red, 0.1f);
+            Debug.DrawRay(ray.origin, ray.direction * rayDistance, Color.red, 0.1f, false);
         }
 
         if (isUpdating)
@@ -122,7 +126,7 @@ public class MarkedPosition : MonoBehaviour
 
         // Get an array of all collisions
         rayCollisions = Physics2D.RaycastAll(pixelCoordinates, ray.direction, rayDistance);
-        
+
         // Bail if there is nothing being hit by the ray
         if (rayCollisions.Length == 0)
         {
@@ -140,15 +144,39 @@ public class MarkedPosition : MonoBehaviour
                 Debug.Log("Hit Collider: " + collision.collider.name);
             }
         }
-        
-        // Default to first collision if value is outside the array
-        if (tempCollisionToGet >= rayCollisions.Length)
+
+        if (alwaysGetLastCollision)
         {
-            tempCollisionToGet = 0;
+            tempCollisionToGet = rayCollisions.Length;
 
             if (isDebugging)
             {
-                Debug.Log("collisionToGet was out of index. Getting first collision.");
+                Debug.Log("Always getting last collision.");
+            }
+        }
+        else
+        {
+            // Default to first/last collision if collisionToGet is outside the array
+            if (tempCollisionToGet >= rayCollisions.Length)
+            {
+                if (isLastCollisionDefault)
+                {
+                    tempCollisionToGet = rayCollisions.Length;
+
+                    if (isDebugging)
+                    {
+                        Debug.Log("collisionToGet was out of index. Getting last collision.");
+                    }
+                }
+                else
+                {
+                    tempCollisionToGet = 0;
+
+                    if (isDebugging)
+                    {
+                        Debug.Log("collisionToGet was out of index. Getting first collision.");
+                    }
+                }
             }
         }
 

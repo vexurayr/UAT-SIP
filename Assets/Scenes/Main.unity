@@ -153,7 +153,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4570198399904127047, guid: 583f3211da5ca7348aa8fcaf91637db1, type: 3}
       propertyPath: directionOfRay
-      value: 0
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 4570198399904127047, guid: 583f3211da5ca7348aa8fcaf91637db1, type: 3}
       propertyPath: objectReference
