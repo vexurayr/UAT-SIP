@@ -28,6 +28,8 @@ public class MarkedPosition : MonoBehaviour
     [Tooltip("If false, the first collision will be default.")] [SerializeField] private bool isLastCollisionDefault;
     [Tooltip("If true, the ray will always return the last collider in a series of collisions.")]
         [SerializeField] private bool alwaysGetLastCollision;
+    [Tooltip("If true, the raycast will work with 3D colliders instead of 2D ones.")]
+        [SerializeField] private bool areColliders3D;
 
     private enum Direction { Forward, Backward, Up, Down, Left, Right };
     [Tooltip("Forward/Backward = Z axis, Up/Down = Y axis, Left/Right = X axis.")] [SerializeField] private Direction directionOfRay;
@@ -36,7 +38,10 @@ public class MarkedPosition : MonoBehaviour
 
     private Ray2D ray;
     private RaycastHit2D[] rayCollisions;
-    private int tempCollisionToGet;
+    private int tempCollisionToGet2D;
+    private Ray ray3D;
+    private RaycastHit[] rayCollisions3D;
+    private int tempCollisionToGet3D;
     // Get sprite -> texture -> pixel color at coords
     private Sprite sprite = null;
     private Mesh mesh = null;
@@ -54,35 +59,44 @@ public class MarkedPosition : MonoBehaviour
         if (objectReference)
         {
             ray.origin = objectReference.transform.position;
+            ray3D.origin = objectReference.transform.position;
         }
         else
         {
             ray.origin = gameObject.transform.position;
+            ray3D.origin = gameObject.transform.position;
         }
 
         switch (directionOfRay)
         {
             case Direction.Forward:
                 ray.direction = gameObject.transform.forward;
+                ray3D.direction = gameObject.transform.forward;
                 break;
             case Direction.Backward:
                 ray.direction = gameObject.transform.forward * -1;
+                ray3D.direction = gameObject.transform.forward * -1;
                 break;
             case Direction.Up:
                 ray.direction = gameObject.transform.up;
+                ray3D.direction = gameObject.transform.up;
                 break;
             case Direction.Down:
                 ray.direction = gameObject.transform.up * -1;
+                ray3D.direction = gameObject.transform.up * -1;
                 break;
             case Direction.Left:
                 ray.direction = gameObject.transform.right * -1;
+                ray3D.direction = gameObject.transform.right * -1;
                 break;
             case Direction.Right:
                 ray.direction = gameObject.transform.right;
+                ray3D.direction = gameObject.transform.right;
                 break;
             default:
                 Debug.Log("Ray direction is unclear. Defaulting to Forward.");
                 ray.direction = gameObject.transform.forward;
+                ray3D.direction = gameObject.transform.forward;
                 break;
         }
     }
@@ -94,10 +108,12 @@ public class MarkedPosition : MonoBehaviour
             if (objectReference)
             {
                 ray.origin = objectReference.transform.position;
+                ray3D.origin = objectReference.transform.position;
             }
             else
             {
                 ray.origin = gameObject.transform.position;
+                ray3D.origin = gameObject.transform.position;
             }
         }
 
@@ -108,7 +124,14 @@ public class MarkedPosition : MonoBehaviour
 
         if (isUpdating)
         {
-            PerformRaycast();
+            if (areColliders3D)
+            {
+                PerformRaycast3D();
+            }
+            else
+            {
+                PerformRaycast2D();
+            }
         }
     }
 
@@ -116,10 +139,10 @@ public class MarkedPosition : MonoBehaviour
 
     #region PrivateFunctions
     // Shoots ray, gets all collisions, gets material of tri hit or gets texture/pixel hit, get color of tri/pixel
-    private void PerformRaycast()
+    private void PerformRaycast2D()
     {
         // Work within the bounds of array.length
-        tempCollisionToGet = collisionToGet - 1;
+        tempCollisionToGet2D = collisionToGet - 1;
 
         // To get exact pixel on the colliders texture that the ray collided with
         Vector2 pixelCoordinates = ray.origin;
@@ -147,7 +170,7 @@ public class MarkedPosition : MonoBehaviour
 
         if (alwaysGetLastCollision)
         {
-            tempCollisionToGet = rayCollisions.Length;
+            tempCollisionToGet2D = rayCollisions.Length;
 
             if (isDebugging)
             {
@@ -157,11 +180,11 @@ public class MarkedPosition : MonoBehaviour
         else
         {
             // Default to first/last collision if collisionToGet is outside the array
-            if (tempCollisionToGet >= rayCollisions.Length)
+            if (tempCollisionToGet2D >= rayCollisions.Length)
             {
                 if (isLastCollisionDefault)
                 {
-                    tempCollisionToGet = rayCollisions.Length;
+                    tempCollisionToGet2D = rayCollisions.Length;
 
                     if (isDebugging)
                     {
@@ -170,7 +193,95 @@ public class MarkedPosition : MonoBehaviour
                 }
                 else
                 {
-                    tempCollisionToGet = 0;
+                    tempCollisionToGet2D = 0;
+
+                    if (isDebugging)
+                    {
+                        Debug.Log("collisionToGet was out of index. Getting first collision.");
+                    }
+                }
+            }
+        }
+
+        switch (renderMethod)
+        {
+            case Renderer.Texture:
+                GetTexture(pixelCoordinates);
+
+                break;
+            case Renderer.TriMaterial:
+                GetTriMaterial();
+
+                break;
+            case Renderer.WholeMaterial:
+                GetWholeMaterial();
+
+                break;
+            default:
+                Debug.Log("Render method unclear. Defaulting to WholeMaterial.");
+                GetWholeMaterial();
+
+                break;
+        }
+
+        ConvertRGBToHSB();
+    }
+
+    private void PerformRaycast3D()
+    {
+        // Work within the bounds of array.length
+        tempCollisionToGet3D = collisionToGet - 1;
+
+        // To get exact pixel on the colliders texture that the ray collided with
+        Vector3 pixelCoordinates = ray3D.origin;
+
+        // Get an array of all collisions
+        rayCollisions3D = Physics.RaycastAll(pixelCoordinates, ray3D.direction, rayDistance);
+
+        // Bail if there is nothing being hit by the ray
+        if (rayCollisions3D.Length == 0)
+        {
+            if (isDebugging)
+            {
+                Debug.Log("Ray did not hit anything.");
+            }
+            return;
+        }
+
+        if (isDebugging)
+        {
+            foreach (RaycastHit collision in rayCollisions3D)
+            {
+                Debug.Log("Hit Collider: " + collision.collider.name);
+            }
+        }
+
+        if (alwaysGetLastCollision)
+        {
+            tempCollisionToGet3D = rayCollisions3D.Length;
+
+            if (isDebugging)
+            {
+                Debug.Log("Always getting last collision.");
+            }
+        }
+        else
+        {
+            // Default to first/last collision if collisionToGet is outside the array
+            if (tempCollisionToGet3D >= rayCollisions3D.Length)
+            {
+                if (isLastCollisionDefault)
+                {
+                    tempCollisionToGet3D = rayCollisions3D.Length;
+
+                    if (isDebugging)
+                    {
+                        Debug.Log("collisionToGet was out of index. Getting last collision.");
+                    }
+                }
+                else
+                {
+                    tempCollisionToGet3D = 0;
 
                     if (isDebugging)
                     {
@@ -207,13 +318,13 @@ public class MarkedPosition : MonoBehaviour
     private void GetTexture(Vector2 pixelCoordinates)
     {
         // Check for sprite on parent and child objects
-        if (rayCollisions[tempCollisionToGet].collider.GetComponent<SpriteRenderer>())
+        if (rayCollisions[tempCollisionToGet2D].collider.GetComponent<SpriteRenderer>())
         {
-            sprite = rayCollisions[tempCollisionToGet].collider.GetComponent<SpriteRenderer>().sprite;
+            sprite = rayCollisions[tempCollisionToGet2D].collider.GetComponent<SpriteRenderer>().sprite;
         }
-        else if (rayCollisions[tempCollisionToGet].collider.GetComponentInChildren<SpriteRenderer>())
+        else if (rayCollisions[tempCollisionToGet2D].collider.GetComponentInChildren<SpriteRenderer>())
         {
-            sprite = rayCollisions[tempCollisionToGet].collider.GetComponentInChildren<SpriteRenderer>().sprite;
+            sprite = rayCollisions[tempCollisionToGet2D].collider.GetComponentInChildren<SpriteRenderer>().sprite;
         }
 
         if (isDebugging)
@@ -231,19 +342,20 @@ public class MarkedPosition : MonoBehaviour
     private void GetTriMaterial()
     {
         // Get the mesh of the target collider
-        mesh = GetMeshOf(rayCollisions[tempCollisionToGet].collider.gameObject);
-
+        mesh = GetMeshOf(rayCollisions[tempCollisionToGet2D].collider.gameObject);
+        
         if (!mesh)
         {
+            Debug.Log("Still no mesh");
             return;
         }
 
         // Get the tris of each mesh
         int[] trisHit = new int[]
         {
-            mesh.triangles[rayCollisions[tempCollisionToGet].collider.shapeCount * 3],
-            mesh.triangles[rayCollisions[tempCollisionToGet].collider.shapeCount * 3 + 1],
-            mesh.triangles[rayCollisions[tempCollisionToGet].collider.shapeCount * 3 + 2]
+            mesh.triangles[rayCollisions[tempCollisionToGet2D].collider.shapeCount * 3],
+            mesh.triangles[rayCollisions[tempCollisionToGet2D].collider.shapeCount * 3 + 1],
+            mesh.triangles[rayCollisions[tempCollisionToGet2D].collider.shapeCount * 3 + 2]
         };
 
         // Get the tris of each submesh
@@ -259,7 +371,7 @@ public class MarkedPosition : MonoBehaviour
                 {
                     if (isDebugging)
                     {
-                        Debug.Log("Tri index: " + rayCollisions[tempCollisionToGet].collider.shapeCount + ", SubMesh index: " +
+                        Debug.Log("Tri index: " + rayCollisions[tempCollisionToGet2D].collider.shapeCount + ", SubMesh index: " +
                             i + ", SubMesh Tri index: " + j / 3);
                     }
 
@@ -272,13 +384,13 @@ public class MarkedPosition : MonoBehaviour
     private void GetWholeMaterial()
     {
         // Check for sprite on parent and child objects
-        if (rayCollisions[tempCollisionToGet].collider.GetComponent<SpriteRenderer>())
+        if (rayCollisions[tempCollisionToGet2D].collider.GetComponent<SpriteRenderer>())
         {
-            material = rayCollisions[tempCollisionToGet].collider.GetComponent<SpriteRenderer>().material;
+            material = rayCollisions[tempCollisionToGet2D].collider.GetComponent<SpriteRenderer>().material;
         }
-        else if (rayCollisions[tempCollisionToGet].collider.GetComponentInChildren<SpriteRenderer>())
+        else if (rayCollisions[tempCollisionToGet2D].collider.GetComponentInChildren<SpriteRenderer>())
         {
-            material = rayCollisions[tempCollisionToGet].collider.GetComponentInChildren<SpriteRenderer>().material;
+            material = rayCollisions[tempCollisionToGet2D].collider.GetComponentInChildren<SpriteRenderer>().material;
         }
 
         if (isDebugging)
