@@ -20,16 +20,15 @@ public class MarkedPosition : MonoBehaviour
     [Tooltip("Enables the debug ray (make sure Gizmos are enabled in the Game view) and debug messages.")]
         [SerializeField] private bool isDebugging;
 
-    private enum Renderer { Texture, TriMaterial, WholeMaterial };
-    [Tooltip("Texture = The color of the pixel, TriMaterial = The primary color of the tri on a mesh (NOT READY, INCOMPATIBLE WITH SPRITES), " +
-        "WholeMaterial = The primary color of the sprite.")] [SerializeField] private Renderer renderMethod;
+    // Cut TriMaterial method - not suitable with sprites and hard to test in 2D project
+    private enum Renderer { Texture, WholeMaterial };
+    [Tooltip("Texture = The color of the pixel, WholeMaterial = The primary color of the sprite.")]
+        [SerializeField] private Renderer renderMethod;
 
     [Tooltip("Get the color of collider X from the array of colliders.")] [SerializeField] [Range(1, 100)] private int collisionToGet;
     [Tooltip("If false, the first collision will be default.")] [SerializeField] private bool isLastCollisionDefault;
     [Tooltip("If true, the ray will always return the last collider in a series of collisions.")]
         [SerializeField] private bool alwaysGetLastCollision;
-    [Tooltip("If true, the raycast will work with 3D colliders instead of 2D ones.")]
-        [SerializeField] private bool areColliders3D;
 
     private enum Direction { Forward, Backward, Up, Down, Left, Right };
     [Tooltip("Forward/Backward = Z axis, Up/Down = Y axis, Left/Right = X axis.")] [SerializeField] private Direction directionOfRay;
@@ -39,12 +38,8 @@ public class MarkedPosition : MonoBehaviour
     private Ray2D ray;
     private RaycastHit2D[] rayCollisions;
     private int tempCollisionToGet2D;
-    private Ray ray3D;
-    private RaycastHit[] rayCollisions3D;
-    private int tempCollisionToGet3D;
     // Get sprite -> texture -> pixel color at coords
     private Sprite sprite = null;
-    private Mesh mesh = null;
     private Material material = null;
     private Color rGB;
     private float hue;
@@ -59,44 +54,35 @@ public class MarkedPosition : MonoBehaviour
         if (objectReference)
         {
             ray.origin = objectReference.transform.position;
-            ray3D.origin = objectReference.transform.position;
         }
         else
         {
             ray.origin = gameObject.transform.position;
-            ray3D.origin = gameObject.transform.position;
         }
 
         switch (directionOfRay)
         {
             case Direction.Forward:
                 ray.direction = gameObject.transform.forward;
-                ray3D.direction = gameObject.transform.forward;
                 break;
             case Direction.Backward:
                 ray.direction = gameObject.transform.forward * -1;
-                ray3D.direction = gameObject.transform.forward * -1;
                 break;
             case Direction.Up:
                 ray.direction = gameObject.transform.up;
-                ray3D.direction = gameObject.transform.up;
                 break;
             case Direction.Down:
                 ray.direction = gameObject.transform.up * -1;
-                ray3D.direction = gameObject.transform.up * -1;
                 break;
             case Direction.Left:
                 ray.direction = gameObject.transform.right * -1;
-                ray3D.direction = gameObject.transform.right * -1;
                 break;
             case Direction.Right:
                 ray.direction = gameObject.transform.right;
-                ray3D.direction = gameObject.transform.right;
                 break;
             default:
                 Debug.Log("Ray direction is unclear. Defaulting to Forward.");
                 ray.direction = gameObject.transform.forward;
-                ray3D.direction = gameObject.transform.forward;
                 break;
         }
     }
@@ -108,12 +94,10 @@ public class MarkedPosition : MonoBehaviour
             if (objectReference)
             {
                 ray.origin = objectReference.transform.position;
-                ray3D.origin = objectReference.transform.position;
             }
             else
             {
                 ray.origin = gameObject.transform.position;
-                ray3D.origin = gameObject.transform.position;
             }
         }
 
@@ -124,14 +108,7 @@ public class MarkedPosition : MonoBehaviour
 
         if (isUpdating)
         {
-            if (areColliders3D)
-            {
-                PerformRaycast3D();
-            }
-            else
-            {
-                PerformRaycast2D();
-            }
+            PerformRaycast2D();
         }
     }
 
@@ -144,11 +121,8 @@ public class MarkedPosition : MonoBehaviour
         // Work within the bounds of array.length
         tempCollisionToGet2D = collisionToGet - 1;
 
-        // To get exact pixel on the colliders texture that the ray collided with
-        Vector2 pixelCoordinates = ray.origin;
-
         // Get an array of all collisions
-        rayCollisions = Physics2D.RaycastAll(pixelCoordinates, ray.direction, rayDistance);
+        rayCollisions = Physics2D.RaycastAll(ray.origin, ray.direction, rayDistance);
 
         // Bail if there is nothing being hit by the ray
         if (rayCollisions.Length == 0)
@@ -170,12 +144,7 @@ public class MarkedPosition : MonoBehaviour
 
         if (alwaysGetLastCollision)
         {
-            tempCollisionToGet2D = rayCollisions.Length;
-
-            if (isDebugging)
-            {
-                Debug.Log("Always getting last collision.");
-            }
+            tempCollisionToGet2D = rayCollisions.Length - 1;
         }
         else
         {
@@ -206,11 +175,8 @@ public class MarkedPosition : MonoBehaviour
         switch (renderMethod)
         {
             case Renderer.Texture:
-                GetTexture(pixelCoordinates);
-
-                break;
-            case Renderer.TriMaterial:
-                GetTriMaterial();
+                // Make sure to have read/write enabled on your textures in the Inspector
+                GetTexture();
 
                 break;
             case Renderer.WholeMaterial:
@@ -227,104 +193,18 @@ public class MarkedPosition : MonoBehaviour
         ConvertRGBToHSB();
     }
 
-    private void PerformRaycast3D()
+    private void GetTexture()
     {
-        // Work within the bounds of array.length
-        tempCollisionToGet3D = collisionToGet - 1;
+        Collider2D hitCollider = rayCollisions[tempCollisionToGet2D].collider;
 
-        // To get exact pixel on the colliders texture that the ray collided with
-        Vector3 pixelCoordinates = ray3D.origin;
-
-        // Get an array of all collisions
-        rayCollisions3D = Physics.RaycastAll(pixelCoordinates, ray3D.direction, rayDistance);
-
-        // Bail if there is nothing being hit by the ray
-        if (rayCollisions3D.Length == 0)
-        {
-            if (isDebugging)
-            {
-                Debug.Log("Ray did not hit anything.");
-            }
-            return;
-        }
-
-        if (isDebugging)
-        {
-            foreach (RaycastHit collision in rayCollisions3D)
-            {
-                Debug.Log("Hit Collider: " + collision.collider.name);
-            }
-        }
-
-        if (alwaysGetLastCollision)
-        {
-            tempCollisionToGet3D = rayCollisions3D.Length;
-
-            if (isDebugging)
-            {
-                Debug.Log("Always getting last collision.");
-            }
-        }
-        else
-        {
-            // Default to first/last collision if collisionToGet is outside the array
-            if (tempCollisionToGet3D >= rayCollisions3D.Length)
-            {
-                if (isLastCollisionDefault)
-                {
-                    tempCollisionToGet3D = rayCollisions3D.Length;
-
-                    if (isDebugging)
-                    {
-                        Debug.Log("collisionToGet was out of index. Getting last collision.");
-                    }
-                }
-                else
-                {
-                    tempCollisionToGet3D = 0;
-
-                    if (isDebugging)
-                    {
-                        Debug.Log("collisionToGet was out of index. Getting first collision.");
-                    }
-                }
-            }
-        }
-
-        switch (renderMethod)
-        {
-            case Renderer.Texture:
-                GetTexture(pixelCoordinates);
-
-                break;
-            case Renderer.TriMaterial:
-                GetTriMaterial();
-
-                break;
-            case Renderer.WholeMaterial:
-                GetWholeMaterial();
-
-                break;
-            default:
-                Debug.Log("Render method unclear. Defaulting to WholeMaterial.");
-                GetWholeMaterial();
-
-                break;
-        }
-
-        ConvertRGBToHSB();
-    }
-
-    private void GetTexture(Vector2 pixelCoordinates)
-    {
         // Check for sprite on parent and child objects
-        if (rayCollisions[tempCollisionToGet2D].collider.GetComponent<SpriteRenderer>())
+        if (hitCollider.GetComponent<SpriteRenderer>())
         {
-            sprite = rayCollisions[tempCollisionToGet2D].collider.GetComponent<SpriteRenderer>().sprite;
+            sprite = hitCollider.GetComponent<SpriteRenderer>().sprite;
         }
-        else if (rayCollisions[tempCollisionToGet2D].collider.GetComponentInChildren<SpriteRenderer>())
+        else if (hitCollider.GetComponentInChildren<SpriteRenderer>())
         {
-            sprite = rayCollisions[tempCollisionToGet2D].collider.GetComponentInChildren<SpriteRenderer>().sprite;
+            sprite = hitCollider.GetComponentInChildren<SpriteRenderer>().sprite;
         }
 
         if (isDebugging)
@@ -335,48 +215,31 @@ public class MarkedPosition : MonoBehaviour
         // If a sprite was found, get its texture's color at the pixel the ray hit the texture
         if (sprite != null)
         {
-            rGB = sprite.texture.GetPixel((int)pixelCoordinates.x, (int)pixelCoordinates.y);
-        }
-    }
+            // The texture's pivot point is most likely in its center, using top right
+            float rightX = hitCollider.bounds.max.x;
+            float leftX = hitCollider.bounds.min.x;
+            float topY = hitCollider.bounds.max.y;
+            float bottomY = hitCollider.bounds.min.y;
 
-    private void GetTriMaterial()
-    {
-        // Get the mesh of the target collider
-        mesh = GetMeshOf(rayCollisions[tempCollisionToGet2D].collider.gameObject);
-        
-        if (!mesh)
-        {
-            Debug.Log("Still no mesh");
-            return;
-        }
+            // 0-1 scale current position & topLeftCornerPos using the hitCollider's size
+            float scaleX01 = Mathf.InverseLerp(leftX, rightX, ray.origin.x);
+            float scaleY01 = Mathf.InverseLerp(bottomY, topY, ray.origin.y);
 
-        // Get the tris of each mesh
-        int[] trisHit = new int[]
-        {
-            mesh.triangles[rayCollisions[tempCollisionToGet2D].collider.shapeCount * 3],
-            mesh.triangles[rayCollisions[tempCollisionToGet2D].collider.shapeCount * 3 + 1],
-            mesh.triangles[rayCollisions[tempCollisionToGet2D].collider.shapeCount * 3 + 2]
-        };
+            scaleX01 = Mathf.Clamp01(scaleX01);
+            scaleY01 = Mathf.Clamp01(scaleY01);
 
-        // Get the tris of each submesh
-        for (int i = 0; i < mesh.subMeshCount; i++)
-        {
-            int[] subMeshTris = mesh.GetTriangles(i);
+            // Multiply 0-1 scale by the size of the texture for a pixel
+            float pixelCoordX = scaleX01 * sprite.texture.width;
+            float pixelCoordY = scaleY01 * sprite.texture.height;
 
-            for (int j = 0; j < subMeshTris.Length; j += 3)
+            rGB = sprite.texture.GetPixel((int)pixelCoordX, (int)pixelCoordY);
+
+            if (isDebugging)
             {
-                if (subMeshTris[j] == trisHit[0] &&
-                    subMeshTris[j + 1] == trisHit[1] &&
-                    subMeshTris[j + 2] == trisHit[2])
-                {
-                    if (isDebugging)
-                    {
-                        Debug.Log("Tri index: " + rayCollisions[tempCollisionToGet2D].collider.shapeCount + ", SubMesh index: " +
-                            i + ", SubMesh Tri index: " + j / 3);
-                    }
+                Debug.Log("Middle X: " + hitCollider.transform.position.x + ", Right X: " + rightX + ", Left X: " + leftX +
+                "\nMiddle Y: " + hitCollider.transform.position.y + ", Top Y: " + topY + ", Bottom Y: " + bottomY);
 
-                    rGB = mesh.colors32[i];
-                }
+                Debug.Log("Pixel X: " + (int)pixelCoordX + ", Pixel Y: " + (int)pixelCoordY);
             }
         }
     }
@@ -403,52 +266,6 @@ public class MarkedPosition : MonoBehaviour
         {
             rGB = material.color;
         }
-    }
-
-    private Mesh GetMeshOf(GameObject obj)
-    {
-        MeshFilter meshFilter;
-
-        if (!obj)
-        {
-            if (isDebugging)
-            {
-                Debug.Log("No valid object provided.");
-            }
-
-            return (Mesh)null;
-        }
-
-        if (!obj.GetComponent<MeshFilter>())
-        {
-            if (isDebugging)
-            {
-                Debug.Log("No MeshFilter component could be found.");
-            }
-
-            return (Mesh)null;
-        }
-
-        meshFilter = obj.GetComponent<MeshFilter>();
-
-        Mesh mesh = meshFilter.sharedMesh;
-
-        if (!mesh)
-        {
-            mesh = meshFilter.mesh;
-        }
-
-        if (!mesh)
-        {
-            if (isDebugging)
-            {
-                Debug.Log("No Mesh could be found.");
-            }
-
-            return (Mesh)null;
-        }
-
-        return mesh;
     }
 
     private void ConvertRGBToHSB()
@@ -523,10 +340,6 @@ public class MarkedPosition : MonoBehaviour
         if (newMethod == "Texture")
         {
             renderMethod = Renderer.Texture;
-        }
-        else if (newMethod == "TriMaterial")
-        {
-            renderMethod = Renderer.TriMaterial;
         }
         else if (newMethod == "WholeMaterial")
         {
